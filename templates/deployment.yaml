@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "democrm.fullname" . }}
+  labels:
+    {{- include "democrm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "democrm.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "democrm.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.container.securityContext }}
+      securityContext:
+        {{- toYaml .Values.container.securityContext | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.container.port | default 3000 }}
+        envFrom:
+        - configMapRef:
+            name: {{ .Values.config.configMapName }}
+        - secretRef:
+            name: {{ .Values.secrets.mongodb.name }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.healthChecks.enabled }}
+        readinessProbe:
+          {{- toYaml .Values.healthChecks.readinessProbe | nindent 10 }}
+        livenessProbe:
+          {{- toYaml .Values.healthChecks.livenessProbe | nindent 10 }}
+        {{- end }}
+        {{- if .Values.lifecycle.preStop.enabled }}
+        lifecycle:
+          preStop:
+            exec:
+              command: {{ .Values.lifecycle.preStop.command }}
+        {{- end }}

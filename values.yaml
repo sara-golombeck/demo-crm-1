@@ -1,0 +1,105 @@
+# Application configuration
+replicaCount: 2
+
+# Container configuration
+container:
+  port: 3000
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+
+# Image configuration
+image:
+  repository: pwstaging/demo-crm
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Health checks
+healthChecks:
+  enabled: false
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 15
+    periodSeconds: 20
+
+# Lifecycle hooks
+lifecycle:
+  preStop:
+    enabled: true
+    command: ["/bin/sh", "-c", "sleep 10"]
+
+# Resource management
+resources:
+  limits:
+    cpu: 500m
+    memory: "512Mi"
+  requests:
+    cpu: 200m
+    memory: "256Mi"
+
+# Application config
+config:
+  logLevel: "info"
+  persistence: "true"
+  configMapName: "democrm-config"
+
+# Secrets configuration
+secrets:
+  mongodb:
+    name: "democrm-mongodb-secret"
+
+# Service configuration
+service:
+  port: 80
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: sara-cowsay.ddns.net
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: democrm-tls
+      hosts:
+        - sara-cowsay.ddns.net
+
+# cert-manager configuration
+certManager:
+  enabled: true
+  installCRDs: true
+  version: "v1.14.5"
+  email: sara.beck.dev@gmail.com
+  rbac:
+    serviceAccountName: "cert-manager-crds"
+    clusterRoleName: "cert-manager-crds"
+
+# Dependencies configuration
+mongodb:
+  auth:
+    enabled: true
+    username: "democrm"
+    password: "mypassword"
+    database: "democrm"
+  replicaCount: 2
+
+cert-manager:       
+  installCRDs: false
+
+ingress-nginx:
+  controller:
+    service:
+      type: LoadBalancer

@@ -1,0 +1,28 @@
+{{- if .Values.certManager.installCRDs }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "democrm.fullname" . }}-cert-manager-crds
+  labels:
+    {{- include "democrm.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-15"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "democrm.fullname" . }}-cert-manager-crds
+      containers:
+      - name: install-crds
+        image: alpine/k8s:1.28.4
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Installing cert-manager CRDs..."
+          kubectl apply --validate=false -f https://github.com/cert-manager/cert-manager/releases/download/{{ .Values.certManager.version }}/cert-manager.crds.yaml
+          echo "CRDs installed successfully!"
+{{- end }}
